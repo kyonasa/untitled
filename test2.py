@@ -210,6 +210,39 @@ def create_nvei_source(NVEI_NAME,source_ip):
     else:
         print ("set CREATE NVEI SOURCE ok")
 
+def create_peer_list(NVEI_NAME,VNI,peer_ip):
+    CREATE_HEAD_END_PEER_LIST = """
+        <config>
+          <nvo3 xmlns="http://www.huawei.com/netconf/vrp" content-version="1.0" format-version="1.0">
+            <nvo3Nves>
+              <nvo3Nve>
+                <ifName>"""+str(NVEI_NAME)+"""</ifName>
+                <vniMembers>
+                  <vniMember>
+                    <vniId>"""+str(VNI)+"""</vniId>
+                    <nvo3VniPeers>
+                      <nvo3VniPeer operation="merge">
+                        <peerAddr>"""+str(peer_ip)+"""</peerAddr>
+                      </nvo3VniPeer>
+                    </nvo3VniPeers>
+                  </vniMember>
+                </vniMembers>
+              </nvo3Nve>
+            </nvo3Nves>
+          </nvo3>
+        </config>
+    """
+    try:
+        con_obj = mc.edit_config(target='running', config=CREATE_HEAD_END_PEER_LIST)
+    except RPCError:
+        print ("Error: step 4.3")
+        raise
+
+    if "<ok/>" not in con_obj.xml:
+        print ("Error: %s" % con_obj.xml)
+    else:
+        print ("set CREATE PEER LIST ok")
+
 
 try:
     mc = manager.connect(host="111.202.93.90", port="22", username="admin", password="admin",
