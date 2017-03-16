@@ -12,7 +12,6 @@ if not HAS_NCCLIENT:
     print("the ncclient not installed")
 
 def svlanid(vlan):
-    vlan=10
     svlanid=''
     vlanid=[0 for i in range(1024)]
     if vlan%4==0:
@@ -27,7 +26,7 @@ def svlanid(vlan):
         svlanid=svlanid+str(vlanid[i])
     return svlanid
 
-print (svlanid(10))
+
 
 def create_BD(BD):
     CREATE_BD = """
@@ -119,6 +118,7 @@ def create_l2_if_vlan(ifname,ifnumber,vlanid):
           </ethernet>
         </config>
     """
+
     try:
         con_obj = mc.edit_config(target='running', config=CREATE_L2_INTERFACE_DOT1Q_VID)
     except RPCError:
@@ -155,6 +155,35 @@ def bind_BD_VLAN(BD,vlanid):
         print ("Error: %s" % con_obj.xml)
     else:
         print ("set BIND_BD_VLAN ok")
+
+def BD_bind_if(BD,ifname,ifnumber):
+    BIND_BD_INTERFACE = """
+        <config>
+          <evc xmlns="http://www.huawei.com/netconf/vrp" content-version="1.0" format-version="1.0">
+            <bds>
+              <bd>
+                <bdId>"""+str(BD)+"""</bdId>
+                <servicePoints>
+                  <servicePoint operation="merge">
+                    <ifName>"""+str(ifname)+'.'+str(ifnumber)+"""</ifName>
+                  </servicePoint>
+                </servicePoints>
+              </bd>
+            </bds>
+          </evc>
+        </config>
+    """
+    try:
+        con_obj = mc.edit_config(target='running', config=BIND_BD_INTERFACE)
+    except RPCError:
+        print ("Error: step 2.4")
+        raise
+
+    if "<ok/>" not in con_obj.xml:
+        print ("Error: %s" % con_obj.xml)
+    else:
+        print ("set BD_BIND_IF ok")
+
 
 def create_nve_if(NVEI_NAME,NVEI_ID):
     # e.g.
@@ -254,6 +283,13 @@ except AuthenticationError:
 except Exception:
     print("Error: Other error happen.")
     raise
-ifname='10GE2/0/2'
-ifnumber='1'
-print (str(ifname)+'.'+str(ifnumber))
+ifname='10GE1/0/1'
+ifnumber='9'
+create_BD(37)
+BD_bind_VNI(37,10086)
+create_l2_if(ifname,ifnumber,iftype='10GE')
+create_l2_if_vlan(ifname,ifnumber,vlanid=37)
+BD_bind_if(37,ifname,ifnumber)
+# bind_BD_VLAN(BD='49',vlanid='49')
+# create_nve_if(NVEI_NAME='nve2',NVEI_ID='2')
+create_peer_list(NVEI_NAME='nve1',VNI='10086',peer_ip='172.16.16.253')
